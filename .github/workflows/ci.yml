@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Type-check + build viewer
+        run: npm run build:viewer
+      - name: Smoke-test builder against this repo's README pretending it's a glossary
+        # Builder must at least parse-without-throwing; we'll use wand's glossary
+        # fetched from GitHub raw for a realistic smoke test.
+        run: |
+          curl -sSL -o /tmp/wand-glossary.md \
+            https://raw.githubusercontent.com/akira-toriyama/wand/main/docs/glossary.md
+          node packages/builder/src/build.mjs \
+            --input /tmp/wand-glossary.md \
+            --output /tmp/glossary.json \
+            --repo wand
+          test -s /tmp/glossary.json
+          python3 -c "import json,sys; d=json.load(open('/tmp/glossary.json')); assert d['entries'], 'no entries'; print(f'{len(d[\"entries\"])} entries, {len(d[\"diagrams\"])} diagrams')"

@@ -1,0 +1,83 @@
+name: Deploy glossary site
+
+# Reusable workflow. Called from each source repo's
+# .github/workflows/glossary.yml (uses: akira-toriyama/glossary-site/.github/workflows/deploy.yml@main).
+#
+# The job runs in the *caller's* GITHUB_TOKEN context and deploys to the
+# caller's GitHub Pages — each source repo gets its own glossary site at
+# https://akira-toriyama.github.io/<repo>/
+
+on:
+  workflow_call:
+    inputs:
+      glossary-path:
+        description: "Path to docs/glossary.md within the caller repo"
+        required: false
+        type: string
+        default: "docs/glossary.md"
+      builder-ref:
+        description: "Ref (branch / tag / sha) of glossary-site to use for tooling"
+        required: false
+        type: string
+        default: "main"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout caller repo
+        uses: actions/checkout@v4
+        with:
+          path: caller
+
+      - name: Checkout glossary-site tooling
+        uses: actions/checkout@v4
+        with:
+          repository: akira-toriyama/glossary-site
+          ref: ${{ inputs.builder-ref }}
+          path: tooling
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: tooling/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tooling
+        run: npm ci
+
+      - name: Build glossary.json
+        working-directory: tooling
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          node packages/builder/src/build.mjs \
+            --input "../caller/${{ inputs.glossary-path }}" \
+            --output "packages/viewer/public/glossary.json" \
+            --repo "$REPO_NAME"
+
+      - name: Build viewer (SPA)
+        working-directory: tooling/packages/viewer
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: tooling/packages/viewer/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
