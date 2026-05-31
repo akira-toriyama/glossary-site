@@ -51,34 +51,55 @@ async function main() {
     frontmatter,
     diagrams,
     sections: parsed.sections,
+    sectionOverviews: parsed.sectionOverviews,
     entries: parsed.entries,
   };
 
   await fs.mkdir(path.dirname(output), { recursive: true });
   await fs.writeFile(output, JSON.stringify(result, null, 2));
   console.error(`wrote: ${output}`);
-  console.error(`  entries: ${result.entries.length}, diagrams: ${result.diagrams.length}, sections: ${result.sections.length}`);
+  console.error(
+    `  entries: ${result.entries.length}, diagrams: ${result.diagrams.length}, sections: ${result.sections.length}, overviews: ${result.sectionOverviews.length}`
+  );
 }
 
 function parseGlossary(content) {
   const lines = content.split("\n");
-  const out = { title: "", sections: [], entries: [], diagrams: [] };
+  const out = { title: "", sections: [], entries: [], diagrams: [], sectionOverviews: [] };
   let section = "";
   let i = 0;
+  let collectingOverview = false;
+  let overviewLines = [];
+  const flushOverview = () => {
+    if (section && overviewLines.length) {
+      const body = overviewLines.join("\n").trim();
+      if (body) {
+        const existing = out.sectionOverviews.find((s) => s.name === section);
+        if (existing) existing.body = body;
+        else out.sectionOverviews.push({ name: section, body, anchor: slug(section) });
+      }
+    }
+    overviewLines = [];
+    collectingOverview = false;
+  };
   while (i < lines.length) {
     const line = lines[i];
     if (/^# [^#]/.test(line)) {
+      flushOverview();
       if (!out.title) out.title = line.slice(2).trim();
       i++;
       continue;
     }
     if (/^## [^#]/.test(line)) {
+      flushOverview();
       section = line.slice(3).trim();
       if (!out.sections.includes(section)) out.sections.push(section);
+      collectingOverview = true;
       i++;
       continue;
     }
     if (/^### /.test(line)) {
+      flushOverview();
       const term = line.slice(4).trim();
       const bodyLines = [];
       i++;
@@ -123,8 +144,17 @@ function parseGlossary(content) {
       out.diagrams.push({ sectionLabel: section || "overview", mermaid: ml.join("\n") });
       continue;
     }
+    if (line.trim() === "---") {
+      flushOverview();
+      i++;
+      continue;
+    }
+    if (collectingOverview && section) {
+      overviewLines.push(line);
+    }
     i++;
   }
+  flushOverview();
   return out;
 }
 

@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
-import type { Entry, Glossary } from "./types";
+import type { Entry, Glossary, SectionOverview } from "./types";
 import { renderMarkdown } from "./markdown";
+
+const OVERVIEW_PREFIX = "__overview__:";
+const isOverviewValue = (v: string) => v.startsWith(OVERVIEW_PREFIX);
+const overviewNameOf = (v: string) => v.slice(OVERVIEW_PREFIX.length);
 
 export default function App() {
   const [glossary, setGlossary] = useState<Glossary | null>(null);
@@ -20,13 +24,15 @@ export default function App() {
       .catch((e) => setError(String(e)));
   }, []);
 
-  // cmdk filter: match search against item value (= term) + keywords + body
-  // (body lives in closure rather than keywords to keep keyword strings short)
+  // cmdk filter: match search against item value (= term or overview marker)
+  // + keywords + body. Body and overview body live in closure rather than
+  // keyword strings to keep cmdk's internal indexing small.
   const filter = useMemo(() => {
-    const bodyByTerm = new Map<string, string>();
+    const bodyByValue = new Map<string, string>();
     if (glossary) {
-      for (const e of glossary.entries) {
-        bodyByTerm.set(e.term, e.body);
+      for (const e of glossary.entries) bodyByValue.set(e.term, e.body);
+      for (const so of glossary.sectionOverviews) {
+        bodyByValue.set(OVERVIEW_PREFIX + so.name, so.body);
       }
     }
     return (value: string, search: string, keywords?: string[]): number => {
@@ -37,7 +43,7 @@ export default function App() {
         " " +
         (keywords || []).join(" ") +
         " " +
-        (bodyByTerm.get(value) || "")
+        (bodyByValue.get(value) || "")
       )
         .toLowerCase()
         .replace(/[`*]/g, "");
@@ -88,8 +94,21 @@ export default function App() {
   if (error) return <div className="state">エラー: {error}</div>;
   if (!glossary) return <div className="state">Loading…</div>;
 
-  const current =
-    glossary.entries.find((e) => e.term === highlighted) ?? glossary.entries[0];
+  const overviewByName = new Map(glossary.sectionOverviews.map((s) => [s.name, s]));
+  let viewing:
+    | { kind: "entry"; entry: Entry }
+    | { kind: "overview"; overview: SectionOverview }
+    | null = null;
+  if (isOverviewValue(highlighted)) {
+    const o = overviewByName.get(overviewNameOf(highlighted));
+    if (o) viewing = { kind: "overview", overview: o };
+  } else {
+    const e = glossary.entries.find((en) => en.term === highlighted);
+    if (e) viewing = { kind: "entry", entry: e };
+  }
+  if (!viewing && glossary.entries.length) {
+    viewing = { kind: "entry", entry: glossary.entries[0] };
+  }
 
   return (
     <div className="app">
@@ -135,9 +154,20 @@ export default function App() {
               <Command.Empty>該当なし</Command.Empty>
               {glossary.sections.map((section) => {
                 const items = glossary.entries.filter((e) => e.section === section);
-                if (!items.length) return null;
+                const overview = overviewByName.get(section);
+                if (!items.length && !overview) return null;
                 return (
                   <Command.Group key={section} heading={section}>
+                    {overview && (
+                      <Command.Item
+                        key={OVERVIEW_PREFIX + section}
+                        value={OVERVIEW_PREFIX + section}
+                        keywords={[section, "概要", "overview"]}
+                      >
+                        <span className="item-term">📖 {section}</span>
+                        <span className="item-aliases">概要 / overview</span>
+                      </Command.Item>
+                    )}
                     {items.map((e) => (
                       <Command.Item
                         key={e.term}
@@ -160,7 +190,12 @@ export default function App() {
           </Command>
         </aside>
         <main className="preview" ref={previewRef}>
-          {current && <EntryView entry={current} repo={glossary.repo} />}
+          {viewing?.kind === "entry" && (
+            <EntryView entry={viewing.entry} repo={glossary.repo} />
+          )}
+          {viewing?.kind === "overview" && (
+            <OverviewView overview={viewing.overview} repo={glossary.repo} />
+          )}
           {glossary.diagrams.length > 0 && (
             <section className="diagrams">
               <h3>図</h3>
@@ -195,6 +230,26 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function OverviewView({
+  overview,
+  repo,
+}: {
+  overview: SectionOverview;
+  repo: string;
+}) {
+  const html = useMemo(
+    () => renderMarkdown(overview.body, repo),
+    [overview.body, repo]
+  );
+  return (
+    <article className="entry">
+      <div className="entry-section">概要 / overview</div>
+      <h2 id={overview.anchor}>📖 {overview.name}</h2>
+      <div className="body" dangerouslySetInnerHTML={{ __html: html }} />
+    </article>
   );
 }
 

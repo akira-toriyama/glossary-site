@@ -14,6 +14,12 @@ export type Diagram = {
   svg: string;
 };
 
+export type SectionOverview = {
+  name: string;
+  body: string;
+  anchor: string;
+};
+
 export type Glossary = {
   repo: string;
   title: string;
@@ -22,5 +28,6 @@ export type Glossary = {
   frontmatter: Record<string, unknown>;
   diagrams: Diagram[];
   sections: string[];
+  sectionOverviews: SectionOverview[];
   entries: Entry[];
 };
