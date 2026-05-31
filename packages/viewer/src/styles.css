@@ -327,6 +327,15 @@ a {
   font-weight: 600;
   color: var(--fg-strong);
 }
+.body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  margin: 12px 0;
+  display: block;
+  background: var(--bg);
+}
 .body a,
 .dontcall a {
   color: var(--accent);
