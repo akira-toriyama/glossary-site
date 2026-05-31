@@ -1,11 +1,16 @@
 name: Deploy glossary site
 
 # Reusable workflow. Called from each source repo's
-# .github/workflows/glossary.yml (uses: akira-toriyama/glossary-site/.github/workflows/deploy.yml@main).
+# .github/workflows/glossary.yml.
 #
-# The job runs in the *caller's* GITHUB_TOKEN context and deploys to the
-# caller's GitHub Pages — each source repo gets its own glossary site at
-# https://akira-toriyama.github.io/<repo>/
+# Behavior:
+#   - push to main             → build + deploy to caller's Pages
+#   - workflow_dispatch        → build + deploy (manual trigger)
+#   - pull_request             → build only (validate, no deploy)
+#                                成果物は workflow run の artifact から取れる
+#
+# 各ソースリポは自分の GITHUB_TOKEN コンテキストで動き、
+# https://akira-toriyama.github.io/<repo>/ にデプロイされる。
 
 on:
   workflow_call:
@@ -16,21 +21,16 @@ on:
         type: string
         default: "docs/glossary.md"
       builder-ref:
-        description: "Ref (branch / tag / sha) of glossary-site to use for tooling"
+        description: "Ref of akira-toriyama/glossary-site to use for tooling"
         required: false
         type: string
         default: "main"
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout caller repo
         uses: actions/checkout@v4
@@ -70,7 +70,8 @@ jobs:
           VITE_BASE: /${{ github.event.repository.name }}/
         run: npm run build
 
-      - name: Setup Pages
+      - name: Setup Pages (no-op on PR)
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
@@ -78,6 +79,17 @@ jobs:
         with:
           path: tooling/packages/viewer/dist
 
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
