@@ -24,9 +24,14 @@ export default function App() {
       .catch((e) => setError(String(e)));
   }, []);
 
-  // cmdk filter: match search against item value (= term or overview marker)
-  // + keywords + body. Body and overview body live in closure rather than
-  // keyword strings to keep cmdk's internal indexing small.
+  // cmdk filter: weighted score per match site so the entry whose *name* matches
+  // ranks above entries that only mention the query in their body / aliases.
+  //   term prefix     → 100
+  //   term substring  → 50
+  //   alias substring → 20
+  //   body substring  → 5
+  //   none of above   → 0 (filtered out)
+  // Tokens AND together: any unmatched token → 0.
   const filter = useMemo(() => {
     const bodyByValue = new Map<string, string>();
     if (glossary) {
@@ -35,23 +40,23 @@ export default function App() {
         bodyByValue.set(OVERVIEW_PREFIX + so.name, so.body);
       }
     }
+    const norm = (s: string) => s.toLowerCase().replace(/[`*]/g, "");
     return (value: string, search: string, keywords?: string[]): number => {
-      const ss = search.toLowerCase().replace(/[`*]/g, "").trim();
+      const ss = norm(search).trim();
       if (!ss) return 1;
-      const hay = (
-        value +
-        " " +
-        (keywords || []).join(" ") +
-        " " +
-        (bodyByValue.get(value) || "")
-      )
-        .toLowerCase()
-        .replace(/[`*]/g, "");
+      const term = norm(value);
+      const aliases = norm((keywords || []).join(" "));
+      const body = norm(bodyByValue.get(value) || "");
       const tokens = ss.split(/\s+/).filter(Boolean);
+      let score = 0;
       for (const t of tokens) {
-        if (!hay.includes(t)) return 0;
+        if (term.startsWith(t)) score += 100;
+        else if (term.includes(t)) score += 50;
+        else if (aliases.includes(t)) score += 20;
+        else if (body.includes(t)) score += 5;
+        else return 0;
       }
-      return 1;
+      return score;
     };
   }, [glossary]);
 
@@ -125,10 +130,16 @@ export default function App() {
           </a>
         </div>
         <div className="stats">
-          <span className="stat-chip">{glossary.entries.length} entries</span>
-          <span className="stat-chip">{glossary.sections.length} sections</span>
+          <span className="stat-chip">
+            {glossary.entries.length} {pluralize(glossary.entries.length, "entry", "entries")}
+          </span>
+          <span className="stat-chip">
+            {glossary.sections.length} {pluralize(glossary.sections.length, "section", "sections")}
+          </span>
           {glossary.diagrams.length > 0 && (
-            <span className="stat-chip">{glossary.diagrams.length} diagrams</span>
+            <span className="stat-chip">
+              {glossary.diagrams.length} {pluralize(glossary.diagrams.length, "diagram", "diagrams")}
+            </span>
           )}
         </div>
       </header>
@@ -323,4 +334,8 @@ function WarnIcon() {
 
 function stripWrappingP(s: string): string {
   return s.replace(/^<p>/, "").replace(/<\/p>$/, "");
+}
+
+function pluralize(n: number, singular: string, plural: string): string {
+  return n === 1 ? singular : plural;
 }
