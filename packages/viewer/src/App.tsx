@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
-import type { Entry, Glossary, SectionOverview } from "./types";
+import type { Diagram, Entry, Glossary, SectionOverview } from "./types";
 import { renderMarkdown } from "./markdown";
 
 const OVERVIEW_PREFIX = "__overview__:";
@@ -205,21 +205,13 @@ export default function App() {
             <EntryView entry={viewing.entry} repo={glossary.repo} />
           )}
           {viewing?.kind === "overview" && (
-            <OverviewView overview={viewing.overview} repo={glossary.repo} />
-          )}
-          {glossary.diagrams.length > 0 && (
-            <section className="diagrams">
-              <h3>図</h3>
-              {glossary.diagrams.map((d) => (
-                <figure key={d.id} className="diagram">
-                  <figcaption>{d.sectionLabel}</figcaption>
-                  <div
-                    className="diagram-svg"
-                    dangerouslySetInnerHTML={{ __html: d.svg }}
-                  />
-                </figure>
-              ))}
-            </section>
+            <OverviewView
+              overview={viewing.overview}
+              repo={glossary.repo}
+              diagrams={glossary.diagrams.filter(
+                (d) => d.sectionLabel === viewing.overview.name
+              )}
+            />
           )}
         </main>
       </div>
@@ -247,9 +239,11 @@ export default function App() {
 function OverviewView({
   overview,
   repo,
+  diagrams,
 }: {
   overview: SectionOverview;
   repo: string;
+  diagrams: Diagram[];
 }) {
   const html = useMemo(
     () => renderMarkdown(overview.body, repo),
@@ -260,6 +254,19 @@ function OverviewView({
       <div className="entry-section">概要 / overview</div>
       <h2 id={overview.anchor}>📖 {overview.name}</h2>
       <div className="body" dangerouslySetInnerHTML={{ __html: html }} />
+      {diagrams.length > 0 && (
+        <section className="diagrams">
+          <h3>図</h3>
+          {diagrams.map((d) => (
+            <figure key={d.id} className="diagram">
+              <div
+                className="diagram-svg"
+                dangerouslySetInnerHTML={{ __html: d.svg }}
+              />
+            </figure>
+          ))}
+        </section>
+      )}
     </article>
   );
 }
