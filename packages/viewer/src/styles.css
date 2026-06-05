@@ -299,6 +299,22 @@ a {
 [cmdk-item][data-selected="true"] .item-aliases {
   color: rgba(255, 255, 255, 0.82);
 }
+[cmdk-item] .item-via {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+[cmdk-item][data-selected="true"] .item-via {
+  color: var(--accent-fg);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
 [cmdk-empty] {
   padding: 48px 14px;
   text-align: center;

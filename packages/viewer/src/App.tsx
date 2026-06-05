@@ -115,6 +115,18 @@ export default function App() {
     viewing = { kind: "entry", entry: glossary.entries[0] };
   }
 
+  // Pre-compute, per entry, which alias the current search query matched.
+  // Lets the result list show "via "tooltip"" so the user sees why a wrong
+  // name surfaces the canonical entry (Don't call it reverse lookup).
+  const aliasMatches = new Map<string, string>();
+  const q = query.trim().toLowerCase();
+  if (q) {
+    for (const e of glossary.entries) {
+      const hit = e.aliases.find((a) => a.toLowerCase().includes(q));
+      if (hit && !e.term.toLowerCase().includes(q)) aliasMatches.set(e.term, hit);
+    }
+  }
+
   return (
     <div className="app">
       <header className="head">
@@ -187,7 +199,10 @@ export default function App() {
                         keywords={[...e.aliases, e.section, ...(e.tags ?? []).map((t) => `#${t}`)]}
                       >
                         <span className="item-term">{e.term}</span>
-                        {e.aliases.length > 0 && (
+                        {aliasMatches.get(e.term) && (
+                          <span className="item-via">↩ via "{aliasMatches.get(e.term)}"</span>
+                        )}
+                        {!aliasMatches.get(e.term) && e.aliases.length > 0 && (
                           <span className="item-aliases">
                             {e.aliases.slice(0, 3).join(" · ")}
                             {e.aliases.length > 3 && " …"}
