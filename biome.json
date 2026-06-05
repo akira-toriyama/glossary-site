@@ -39,8 +39,7 @@
       "complexity": {
         "noUselessTypeConstraint": "error",
         "useArrowFunction": "error",
-        "useOptionalChain": "error",
-        "useLiteralKeys": "error"
+        "useOptionalChain": "error"
       },
       "correctness": {
         "noUnusedVariables": "error",
