@@ -7,6 +7,9 @@ export type Entry = {
   wikilinks: string[];
   anchor: string;
   tags: string[];
+  since?: string;
+  deprecated?: string | boolean;
+  related?: string[];
 };
 
 export type SectionOverview = {

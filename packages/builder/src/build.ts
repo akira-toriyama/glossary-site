@@ -155,8 +155,32 @@ export function parseGlossary(content: string): ParsedGlossary {
       let dontcall = "";
       const bodyNoDc: string[] = [];
       let dontcallContinuing = false;
+      let since: string | undefined;
+      let deprecated: string | boolean | undefined;
+      let related: string[] | undefined;
       for (let bi = 0; bi < bodyLines.length; bi++) {
         const bl = bodyLines[bi] ?? "";
+
+        // Dataview-style inline metadata at line start: `key:: value`
+        const meta = bl.match(/^\s*([a-zA-Z][\w-]*)::\s*(.+)$/);
+        if (meta?.[1] && meta?.[2]) {
+          const key = meta[1].toLowerCase();
+          const value = meta[2].trim();
+          if (key === "since") {
+            since = value;
+            continue;
+          }
+          if (key === "deprecated") {
+            deprecated = /^(true|yes)$/i.test(value) ? true : value;
+            continue;
+          }
+          if (key === "related") {
+            related = [...value.matchAll(/\[\[([^\]]+)\]\]/g)]
+              .map((m) => m[1]?.split("|", 1)[0]?.trim())
+              .filter((s): s is string => Boolean(s));
+            continue;
+          }
+        }
 
         // Obsidian callout: > [!ban] / > [!dontcall] / > [!noncall] (with optional title)
         // Body lines (`> …`) are gathered as comma-separated alias source.
@@ -213,6 +237,9 @@ export function parseGlossary(content: string): ParsedGlossary {
         wikilinks,
         anchor: slug(term),
         tags,
+        ...(since !== undefined && { since }),
+        ...(deprecated !== undefined && { deprecated }),
+        ...(related !== undefined && { related }),
       };
       out.entries.push(entry);
       continue;

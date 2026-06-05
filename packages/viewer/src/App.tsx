@@ -4,6 +4,15 @@ import { renderMarkdown } from "./markdown";
 import type { Diagram, Entry, Glossary, SectionOverview } from "./types";
 
 const OVERVIEW_PREFIX = "__overview__:";
+
+// Mirrors builder/src/build.ts#slug — keep the two in sync.
+function slugForLink(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/`/g, "")
+    .replace(/[^\w぀-ヿ一-鿿 -]/g, "")
+    .replace(/\s+/g, "-");
+}
 const isOverviewValue = (v: string) => v.startsWith(OVERVIEW_PREFIX);
 const overviewNameOf = (v: string) => v.slice(OVERVIEW_PREFIX.length);
 
@@ -283,17 +292,39 @@ function EntryView({ entry, repo }: { entry: Entry; repo: string }) {
   return (
     <article className="entry">
       <div className="entry-section">{entry.section}</div>
-      <h2 id={entry.anchor}>{entry.term}</h2>
-      {entry.tags && entry.tags.length > 0 && (
-        <div className="entry-tags">
-          {entry.tags.map((t) => (
-            <span key={t} className="tag-chip">
-              #{t}
-            </span>
-          ))}
+      <h2 id={entry.anchor} className={entry.deprecated ? "term-deprecated" : ""}>
+        {entry.term}
+      </h2>
+      <div className="entry-meta-row">
+        {entry.tags?.map((t) => (
+          <span key={t} className="tag-chip">
+            #{t}
+          </span>
+        ))}
+        {entry.since && <span className="since-chip">since {entry.since}</span>}
+        {entry.deprecated && (
+          <span className="deprecated-chip">
+            ⚠ deprecated
+            {typeof entry.deprecated === "string" && `: ${entry.deprecated}`}
+          </span>
+        )}
+      </div>
+      <div className="body" dangerouslySetInnerHTML={{ __html: html }} />
+      {entry.related && entry.related.length > 0 && (
+        <div className="related">
+          <span className="related-label">関連</span>
+          <span className="related-body">
+            {entry.related.map((r, idx) => (
+              <span key={r}>
+                {idx > 0 && " · "}
+                <a href={`#${slugForLink(r)}`} className="wikilink" data-term={r}>
+                  {r}
+                </a>
+              </span>
+            ))}
+          </span>
         </div>
       )}
-      <div className="body" dangerouslySetInnerHTML={{ __html: html }} />
       {entry.dontcall && (
         <div className="dontcall">
           <span className="dontcall-label">

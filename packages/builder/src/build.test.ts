@@ -258,6 +258,54 @@ describe("parseGlossary", () => {
   });
 });
 
+describe("inline metadata (Dataview-style key:: value)", () => {
+  it("captures since:: into entry.since", () => {
+    const md = ["## D", "", "### Term", "since:: 1.2.0", "Body."].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.since).toBe("1.2.0");
+    expect(out.entries[0]?.body).toBe("Body.");
+  });
+
+  it("captures deprecated:: true as boolean", () => {
+    const md = ["## D", "", "### Term", "deprecated:: true", "Body."].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.deprecated).toBe(true);
+  });
+
+  it("captures deprecated:: <reason> as string", () => {
+    const md = ["## D", "", "### Term", "deprecated:: use Foo instead", "Body."].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.deprecated).toBe("use Foo instead");
+  });
+
+  it("captures related:: [[a]], [[b|表示名]] as wikilink list", () => {
+    const md = [
+      "## D",
+      "",
+      "### Term",
+      "related:: [[Aggregate]], [[Entity|エンティティ]]",
+      "Body.",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.related).toEqual(["Aggregate", "Entity"]);
+  });
+
+  it("strips metadata lines from body", () => {
+    const md = [
+      "## D",
+      "",
+      "### Term",
+      "since:: 1.0",
+      "deprecated:: true",
+      "related:: [[X]]",
+      "",
+      "Body.",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.body).toBe("Body.");
+  });
+});
+
 describe("extractTags", () => {
   it("captures single #tag in prose", () => {
     expect(extractTags("これは #perf に関する話")).toEqual(["perf"]);
