@@ -58,6 +58,15 @@ function inlineMd(s: string, repo: string): string {
     const a = escapeHtml(alt);
     return `<img src="${src}" alt="${a}" loading="lazy" />`;
   });
+  // ![[term]] or ![[term|display]] — Obsidian embed; render as highlighted reference
+  s = s.replace(/!\[\[([^\]]+)\]\]/g, (_m, ref: string) => {
+    const [rawTarget, rawDisplay] = ref.split("|");
+    const target = (rawTarget ?? "").trim();
+    const display = (rawDisplay ?? target).trim();
+    const t = escapeHtml(target);
+    const d = escapeHtml(display);
+    return `<aside class="embed"><a href="#${slug(target)}" class="wikilink embed-link" data-term="${t}">📌 ${d}</a></aside>`;
+  });
   // [[wikilink]] or [[wikilink|display]] — App handles click via delegation
   s = s.replace(/\[\[([^\]]+)\]\]/g, (_m, ref: string) => {
     const [rawTarget, rawDisplay] = ref.split("|");

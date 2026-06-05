@@ -59,6 +59,25 @@ describe("renderMarkdown", () => {
     expect(out).toContain(">集約</a>");
   });
 
+  it("renders embed `![[term]]` as highlighted reference (not a wikilink)", () => {
+    const out = renderMarkdown("![[Aggregate]]", "wand");
+    expect(out).toContain('<aside class="embed">');
+    expect(out).toContain('class="wikilink embed-link"');
+    expect(out).toContain('data-term="Aggregate"');
+    expect(out).toContain("📌 Aggregate");
+  });
+
+  it("embed with display text shows display but routes via target", () => {
+    const out = renderMarkdown("![[Aggregate|集約]]", "wand");
+    expect(out).toContain('data-term="Aggregate"');
+    expect(out).toContain("📌 集約");
+  });
+
+  it("does not interpret ![[…]] as an image", () => {
+    const out = renderMarkdown("![[Aggregate]]", "wand");
+    expect(out).not.toContain("<img");
+  });
+
   it("renders images with lazy loading and resolved src", () => {
     const out = renderMarkdown("![diagram](images/flow.png)", "wand");
     expect(out).toContain(

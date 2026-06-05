@@ -491,6 +491,23 @@ a {
   stroke-dasharray: 4 2;
   opacity: 0.7;
 }
+
+.embed {
+  display: block;
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: var(--accent-bg);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+.embed-link {
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--accent);
+}
+.embed-link:hover {
+  text-decoration: underline;
+}
 .entry h2 {
   font:
     700 28px / 1.25 ui-monospace,
