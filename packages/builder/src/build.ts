@@ -26,6 +26,34 @@ export type BuildOptions = {
   repo: string;
 };
 
+export type WikilinkIssue = {
+  fromTerm: string;
+  target: string;
+};
+
+/**
+ * Returns the list of wikilinks whose target term cannot be resolved among
+ * known entry terms / aliases. Used by the CLI to warn (or fail in strict
+ * mode) on dangling `[[refs]]`.
+ */
+export function findBrokenWikilinks(result: GlossaryJson): WikilinkIssue[] {
+  const known = new Set<string>();
+  for (const e of result.entries) {
+    known.add(e.term);
+    for (const a of e.aliases) known.add(a);
+  }
+  const broken: WikilinkIssue[] = [];
+  for (const e of result.entries) {
+    for (const link of e.wikilinks) {
+      const target = link.split("|", 1)[0]?.trim() ?? link;
+      if (!known.has(target)) {
+        broken.push({ fromTerm: e.term, target });
+      }
+    }
+  }
+  return broken;
+}
+
 export async function build({ input, output, repo }: BuildOptions): Promise<GlossaryJson> {
   const raw = await fs.readFile(input, "utf8");
   const { content, data: frontmatter } = matter(raw);
