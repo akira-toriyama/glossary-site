@@ -62,7 +62,7 @@ jobs:
         working-directory: tooling
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
-          node packages/builder/src/build.mjs \
+          node packages/builder/bin/glossary-build.mjs \
             --input "../caller/${{ inputs.glossary-path }}" \
             --output "packages/viewer/public/glossary.json" \
             --repo "$REPO_NAME"

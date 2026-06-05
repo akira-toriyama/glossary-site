@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "bin": {
-    "glossary-build": "./src/build.mjs"
+    "glossary-build": "./bin/glossary-build.mjs"
   },
   "scripts": {
-    "start": "node src/build.mjs"
+    "start": "tsx src/build.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.0",
@@ -16,5 +17,9 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "typescript": "^6.0.3"
+  }
 }
