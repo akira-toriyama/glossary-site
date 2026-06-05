@@ -5,13 +5,22 @@
  *   render: ```mermaid blocks → SVG (pre-rendered via @mermaid-js/mermaid-cli)
  *   emit:   glossary.json consumed by packages/viewer
  *
- * usage: node build.mjs --input <path> --output <path> --repo <name>
+ * usage: tsx build.ts --input <path> --output <path> --repo <name>
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import process from "node:process";
 import { parseArgs } from "node:util";
 import { run as mmdcRun } from "@mermaid-js/mermaid-cli";
 import matter from "gray-matter";
+import type {
+  DiagramInput,
+  DiagramOutput,
+  Entry,
+  GlossaryJson,
+  ParsedGlossary,
+  SectionOverview,
+} from "./types.ts";
 
 const { values } = parseArgs({
   options: {
@@ -23,17 +32,17 @@ const { values } = parseArgs({
 
 const { input, output, repo } = values;
 if (!input || !output || !repo) {
-  console.error("usage: build.mjs --input <glossary.md> --output <glossary.json> --repo <name>");
+  console.error("usage: build.ts --input <glossary.md> --output <glossary.json> --repo <name>");
   process.exit(2);
 }
 
-async function main() {
-  const raw = await fs.readFile(input, "utf8");
+async function main(inputPath: string, outputPath: string, repoName: string): Promise<void> {
+  const raw = await fs.readFile(inputPath, "utf8");
   const { content, data: frontmatter } = matter(raw);
 
   const parsed = parseGlossary(content);
 
-  const diagrams = [];
+  const diagrams: DiagramOutput[] = [];
   for (const [idx, d] of parsed.diagrams.entries()) {
     const svg = await renderMermaid(d.mermaid, idx);
     diagrams.push({
@@ -43,86 +52,110 @@ async function main() {
     });
   }
 
-  const result = {
-    repo,
-    title: parsed.title || `${repo} のユビキタス言語`,
+  const result: GlossaryJson = {
+    repo: repoName,
+    title: parsed.title || `${repoName} のユビキタス言語`,
     generatedAt: new Date().toISOString(),
-    sourceUrl: `https://github.com/akira-toriyama/${repo}/blob/main/docs/glossary.md`,
-    frontmatter,
+    sourceUrl: `https://github.com/akira-toriyama/${repoName}/blob/main/docs/glossary.md`,
+    frontmatter: frontmatter as Record<string, unknown>,
     diagrams,
     sections: parsed.sections,
     sectionOverviews: parsed.sectionOverviews,
     entries: parsed.entries,
   };
 
-  await fs.mkdir(path.dirname(output), { recursive: true });
-  await fs.writeFile(output, JSON.stringify(result, null, 2));
-  console.error(`wrote: ${output}`);
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, JSON.stringify(result, null, 2));
+  console.error(`wrote: ${outputPath}`);
   console.error(
     `  entries: ${result.entries.length}, diagrams: ${result.diagrams.length}, sections: ${result.sections.length}, overviews: ${result.sectionOverviews.length}`,
   );
 }
 
-function parseGlossary(content) {
+export function parseGlossary(content: string): ParsedGlossary {
   const lines = content.split("\n");
-  const out = { title: "", sections: [], entries: [], diagrams: [], sectionOverviews: [] };
+  const out: ParsedGlossary = {
+    title: "",
+    sections: [],
+    entries: [],
+    diagrams: [],
+    sectionOverviews: [],
+  };
   let section = "";
   let i = 0;
   let collectingOverview = false;
-  let overviewLines = [];
-  const flushOverview = () => {
-    if (section && overviewLines.length) {
+  let overviewLines: string[] = [];
+
+  const flushOverview = (): void => {
+    if (section && overviewLines.length > 0) {
       const body = overviewLines.join("\n").trim();
       if (body) {
         const existing = out.sectionOverviews.find((s) => s.name === section);
-        if (existing) existing.body = body;
-        else out.sectionOverviews.push({ name: section, body, anchor: slug(section) });
+        if (existing) {
+          existing.body = body;
+        } else {
+          const overview: SectionOverview = { name: section, body, anchor: slug(section) };
+          out.sectionOverviews.push(overview);
+        }
       }
     }
     overviewLines = [];
     collectingOverview = false;
   };
+
   while (i < lines.length) {
-    const line = lines[i];
+    const line = lines[i] ?? "";
+
     if (/^# [^#]/.test(line)) {
       flushOverview();
-      if (!out.title) out.title = line.slice(2).trim();
+      if (!out.title) {
+        out.title = line.slice(2).trim();
+      }
       i++;
       continue;
     }
+
     if (/^## [^#]/.test(line)) {
       flushOverview();
       section = line.slice(3).trim();
-      if (!out.sections.includes(section)) out.sections.push(section);
+      if (!out.sections.includes(section)) {
+        out.sections.push(section);
+      }
       collectingOverview = true;
       i++;
       continue;
     }
+
     if (/^### /.test(line)) {
       flushOverview();
       const term = line.slice(4).trim();
-      const bodyLines = [];
+      const bodyLines: string[] = [];
       i++;
       while (i < lines.length) {
-        const nxt = lines[i];
+        const nxt = lines[i] ?? "";
         if (/^#{1,3} /.test(nxt) || nxt.trim() === "---") break;
         bodyLines.push(nxt);
         i++;
       }
       let dontcall = "";
-      const bodyNoDc = [];
+      const bodyNoDc: string[] = [];
       for (const bl of bodyLines) {
         const m = bl.match(/\*\*Don'?t call it:\*\*\s*(.+)$/);
-        if (m) dontcall = m[1].trim();
-        else bodyNoDc.push(bl);
+        if (m?.[1]) {
+          dontcall = m[1].trim();
+        } else {
+          bodyNoDc.push(bl);
+        }
       }
       const aliases = dontcall
         .split(/[,、]/)
         .map((s) => s.trim())
         .filter(Boolean);
       const fullBody = bodyLines.join("\n");
-      const wikilinks = [...fullBody.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1]);
-      out.entries.push({
+      const wikilinks = [...fullBody.matchAll(/\[\[([^\]]+)\]\]/g)]
+        .map((m) => m[1])
+        .filter((s): s is string => Boolean(s));
+      const entry: Entry = {
         term,
         section,
         body: bodyNoDc.join("\n").trim(),
@@ -130,25 +163,33 @@ function parseGlossary(content) {
         aliases,
         wikilinks,
         anchor: slug(term),
-      });
+      };
+      out.entries.push(entry);
       continue;
     }
+
     if (line.startsWith("```mermaid")) {
       i++;
-      const ml = [];
-      while (i < lines.length && !lines[i].startsWith("```")) {
-        ml.push(lines[i]);
+      const ml: string[] = [];
+      while (i < lines.length && !(lines[i] ?? "").startsWith("```")) {
+        ml.push(lines[i] ?? "");
         i++;
       }
       i++; // closing ```
-      out.diagrams.push({ sectionLabel: section || "overview", mermaid: ml.join("\n") });
+      const diagram: DiagramInput = {
+        sectionLabel: section || "overview",
+        mermaid: ml.join("\n"),
+      };
+      out.diagrams.push(diagram);
       continue;
     }
+
     if (line.trim() === "---") {
       flushOverview();
       i++;
       continue;
     }
+
     if (collectingOverview && section) {
       overviewLines.push(line);
     }
@@ -158,7 +199,7 @@ function parseGlossary(content) {
   return out;
 }
 
-function slug(s) {
+export function slug(s: string): string {
   return s
     .toLowerCase()
     .replace(/`/g, "")
@@ -166,25 +207,28 @@ function slug(s) {
     .replace(/\s+/g, "-");
 }
 
-async function renderMermaid(source, idx) {
+async function renderMermaid(source: string, idx: number): Promise<string> {
   const tmpDir = `/tmp/glossary-mermaid-${process.pid}`;
   await fs.mkdir(tmpDir, { recursive: true });
   const inFile = path.join(tmpDir, `in-${idx}.mmd`);
   const outFile = path.join(tmpDir, `out-${idx}.svg`);
   await fs.writeFile(inFile, source);
   try {
-    await mmdcRun(inFile, outFile, {
+    await mmdcRun(inFile as `${string}.mmd`, outFile as `${string}.svg`, {
       puppeteerConfig: { args: ["--no-sandbox", "--disable-setuid-sandbox"] },
-      mermaidConfig: { theme: "default", flowchart: { useMaxWidth: true } },
+      parseMMDOptions: {
+        mermaidConfig: { theme: "default", flowchart: { useMaxWidth: true } },
+      },
     });
     return await fs.readFile(outFile, "utf8");
   } catch (e) {
-    console.error(`mermaid render failed (diagram ${idx}): ${e.message}`);
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`mermaid render failed (diagram ${idx}): ${message}`);
     return `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40"><text x="10" y="25" fill="#c00">mermaid render failed</text></svg>`;
   }
 }
 
-main().catch((e) => {
+main(input, output, repo).catch((e: unknown) => {
   console.error(e);
   process.exit(1);
 });
