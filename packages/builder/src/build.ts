@@ -155,7 +155,29 @@ export function parseGlossary(content: string): ParsedGlossary {
       let dontcall = "";
       const bodyNoDc: string[] = [];
       let dontcallContinuing = false;
-      for (const bl of bodyLines) {
+      for (let bi = 0; bi < bodyLines.length; bi++) {
+        const bl = bodyLines[bi] ?? "";
+
+        // Obsidian callout: > [!ban] / > [!dontcall] / > [!noncall] (with optional title)
+        // Body lines (`> …`) are gathered as comma-separated alias source.
+        const callout = bl.match(/^\s*>\s*\[!(ban|dontcall|noncall)\][^\n]*$/i);
+        if (callout) {
+          const aliasLines: string[] = [];
+          let bj = bi + 1;
+          while (bj < bodyLines.length) {
+            const next = bodyLines[bj] ?? "";
+            const cont = next.match(/^\s*>\s?(.*)$/);
+            if (!cont) break;
+            const piece = (cont[1] ?? "").trim();
+            if (piece) aliasLines.push(piece);
+            bj++;
+          }
+          dontcall = aliasLines.join(", ");
+          dontcallContinuing = false;
+          bi = bj - 1;
+          continue;
+        }
+
         const m = bl.match(/\*\*Don'?t call it:\*\*\s*(.+)$/);
         if (m?.[1]) {
           dontcall = m[1].trim();
