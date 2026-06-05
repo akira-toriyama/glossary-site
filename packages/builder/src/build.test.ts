@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { parseGlossary, slug } from "./build.ts";
+import { findBrokenWikilinks, parseGlossary, slug } from "./build.ts";
+import type { GlossaryJson } from "./types.ts";
+
+function makeGlossary(
+  entries: { term: string; aliases?: string[]; wikilinks?: string[] }[],
+): GlossaryJson {
+  return {
+    repo: "test",
+    title: "test",
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceUrl: "",
+    frontmatter: {},
+    diagrams: [],
+    sections: [],
+    sectionOverviews: [],
+    entries: entries.map((e) => ({
+      term: e.term,
+      section: "",
+      body: "",
+      dontcall: "",
+      aliases: e.aliases ?? [],
+      wikilinks: e.wikilinks ?? [],
+      anchor: e.term,
+    })),
+  };
+}
 
 describe("slug", () => {
   it("lowercases ASCII", () => {
@@ -168,5 +193,37 @@ describe("parseGlossary", () => {
     const out = parseGlossary(md);
     expect(out.sections).toEqual(["A", "B"]);
     expect(out.sectionOverviews[0]?.name).toBe("A");
+  });
+});
+
+describe("findBrokenWikilinks", () => {
+  it("returns empty when all wikilink targets resolve", () => {
+    const g = makeGlossary([{ term: "Aggregate", wikilinks: ["Entity"] }, { term: "Entity" }]);
+    expect(findBrokenWikilinks(g)).toEqual([]);
+  });
+
+  it("flags wikilinks whose target does not exist", () => {
+    const g = makeGlossary([
+      { term: "Aggregate", wikilinks: ["Entity", "GhostTerm"] },
+      { term: "Entity" },
+    ]);
+    const broken = findBrokenWikilinks(g);
+    expect(broken).toEqual([{ fromTerm: "Aggregate", target: "GhostTerm" }]);
+  });
+
+  it("resolves through aliases (Don't call it members)", () => {
+    const g = makeGlossary([
+      { term: "non-activating panel", aliases: ["panel"], wikilinks: [] },
+      { term: "Other", wikilinks: ["panel"] },
+    ]);
+    expect(findBrokenWikilinks(g)).toEqual([]);
+  });
+
+  it("strips display text and resolves the target half", () => {
+    const g = makeGlossary([
+      { term: "Aggregate" },
+      { term: "Caller", wikilinks: ["Aggregate|集約"] },
+    ]);
+    expect(findBrokenWikilinks(g)).toEqual([]);
   });
 });
