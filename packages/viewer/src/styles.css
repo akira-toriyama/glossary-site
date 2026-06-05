@@ -407,6 +407,90 @@ a {
 .related-body {
   color: var(--fg);
 }
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-left: 8px;
+}
+.view-toggle button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 4px 12px;
+  font:
+    12px ui-monospace,
+    monospace;
+  color: var(--dim);
+  cursor: pointer;
+}
+.view-toggle button.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.graph-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background: var(--bg);
+}
+.graph-svg {
+  display: block;
+  min-width: 100%;
+  height: auto;
+}
+.edge {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+.edge-active {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 1;
+}
+.graph-section-label {
+  font:
+    600 11px ui-monospace,
+    monospace;
+  fill: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-anchor: middle;
+}
+.node {
+  cursor: pointer;
+}
+.node rect {
+  fill: var(--card);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.node text {
+  font:
+    12px ui-monospace,
+    monospace;
+  fill: var(--fg);
+  pointer-events: none;
+}
+.node:hover rect {
+  stroke: var(--accent);
+}
+.node-active rect {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.node-active text {
+  fill: var(--accent-fg);
+}
+.node-deprecated rect {
+  stroke-dasharray: 4 2;
+  opacity: 0.7;
+}
 .entry h2 {
   font:
     700 28px / 1.25 ui-monospace,

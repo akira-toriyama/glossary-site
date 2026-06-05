@@ -39,7 +39,8 @@
       "complexity": {
         "noUselessTypeConstraint": "error",
         "useArrowFunction": "error",
-        "useOptionalChain": "error"
+        "useOptionalChain": "error",
+        "useLiteralKeys": "off"
       },
       "correctness": {
         "noUnusedVariables": "error",
@@ -71,7 +72,8 @@
         "recommended": true
       },
       "a11y": {
-        "recommended": true
+        "recommended": true,
+        "useSemanticElements": "warn"
       },
       "security": {
         "recommended": true,
