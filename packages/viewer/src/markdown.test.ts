@@ -45,6 +45,20 @@ describe("renderMarkdown", () => {
     expect(out).toContain('href="#aggregate"');
   });
 
+  it("renders display-text wikilinks but routes by target", () => {
+    const out = renderMarkdown("see [[Aggregate|集約]]", "wand");
+    expect(out).toContain('data-term="Aggregate"');
+    expect(out).toContain('href="#aggregate"');
+    expect(out).toContain(">集約</a>");
+    expect(out).not.toContain(">Aggregate</a>");
+  });
+
+  it("trims whitespace around the `|` separator", () => {
+    const out = renderMarkdown("see [[Aggregate | 集約 ]]", "wand");
+    expect(out).toContain('data-term="Aggregate"');
+    expect(out).toContain(">集約</a>");
+  });
+
   it("renders images with lazy loading and resolved src", () => {
     const out = renderMarkdown("![diagram](images/flow.png)", "wand");
     expect(out).toContain(
