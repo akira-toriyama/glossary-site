@@ -1,16 +1,14 @@
-#!/usr/bin/env node
 /**
- * glossary builder
+ * glossary builder (library)
  *   parse:  docs/glossary.md (Obsidian-friendly markdown)
  *   render: ```mermaid blocks → SVG (pre-rendered via @mermaid-js/mermaid-cli)
  *   emit:   glossary.json consumed by packages/viewer
  *
- * usage: tsx build.ts --input <path> --output <path> --repo <name>
+ * CLI entry is src/cli.ts (boots via bin/glossary-build.mjs).
  */
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { parseArgs } from "node:util";
 import { run as mmdcRun } from "@mermaid-js/mermaid-cli";
 import matter from "gray-matter";
 import type {
@@ -22,22 +20,14 @@ import type {
   SectionOverview,
 } from "./types.ts";
 
-const { values } = parseArgs({
-  options: {
-    input: { type: "string", short: "i" },
-    output: { type: "string", short: "o" },
-    repo: { type: "string", short: "r" },
-  },
-});
+export type BuildOptions = {
+  input: string;
+  output: string;
+  repo: string;
+};
 
-const { input, output, repo } = values;
-if (!input || !output || !repo) {
-  console.error("usage: build.ts --input <glossary.md> --output <glossary.json> --repo <name>");
-  process.exit(2);
-}
-
-async function main(inputPath: string, outputPath: string, repoName: string): Promise<void> {
-  const raw = await fs.readFile(inputPath, "utf8");
+export async function build({ input, output, repo }: BuildOptions): Promise<GlossaryJson> {
+  const raw = await fs.readFile(input, "utf8");
   const { content, data: frontmatter } = matter(raw);
 
   const parsed = parseGlossary(content);
@@ -53,10 +43,10 @@ async function main(inputPath: string, outputPath: string, repoName: string): Pr
   }
 
   const result: GlossaryJson = {
-    repo: repoName,
-    title: parsed.title || `${repoName} のユビキタス言語`,
+    repo,
+    title: parsed.title || `${repo} のユビキタス言語`,
     generatedAt: new Date().toISOString(),
-    sourceUrl: `https://github.com/akira-toriyama/${repoName}/blob/main/docs/glossary.md`,
+    sourceUrl: `https://github.com/akira-toriyama/${repo}/blob/main/docs/glossary.md`,
     frontmatter: frontmatter as Record<string, unknown>,
     diagrams,
     sections: parsed.sections,
@@ -64,12 +54,9 @@ async function main(inputPath: string, outputPath: string, repoName: string): Pr
     entries: parsed.entries,
   };
 
-  await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, JSON.stringify(result, null, 2));
-  console.error(`wrote: ${outputPath}`);
-  console.error(
-    `  entries: ${result.entries.length}, diagrams: ${result.diagrams.length}, sections: ${result.sections.length}, overviews: ${result.sectionOverviews.length}`,
-  );
+  await fs.mkdir(path.dirname(output), { recursive: true });
+  await fs.writeFile(output, JSON.stringify(result, null, 2));
+  return result;
 }
 
 export function parseGlossary(content: string): ParsedGlossary {
@@ -227,8 +214,3 @@ async function renderMermaid(source: string, idx: number): Promise<string> {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40"><text x="10" y="25" fill="#c00">mermaid render failed</text></svg>`;
   }
 }
-
-main(input, output, repo).catch((e: unknown) => {
-  console.error(e);
-  process.exit(1);
-});

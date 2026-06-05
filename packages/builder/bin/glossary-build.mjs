@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const target = path.resolve(here, "..", "src", "build.ts");
+const target = path.resolve(here, "..", "src", "cli.ts");
 
 const child = spawn(process.execPath, ["--import", "tsx", target, ...process.argv.slice(2)], {
   stdio: "inherit",
