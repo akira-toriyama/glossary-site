@@ -37,7 +37,7 @@ build({ input, output, repo })
       for (const b of broken) {
         console.error(`  - in "${b.fromTerm}" → [[${b.target}]]`);
       }
-      const strictMode = strict || process.env.GLOSSARY_STRICT === "1";
+      const strictMode = strict || process.env["GLOSSARY_STRICT"] === "1";
       if (strictMode) {
         console.error("\n(--strict / GLOSSARY_STRICT=1) failing build.");
         process.exit(3);
