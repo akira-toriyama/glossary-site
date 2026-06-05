@@ -15,16 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
           node-version: "20"
-          cache: "npm"
-      - run: npm ci
-      - name: Type-check + build viewer
-        run: npm run build:viewer
-      - name: Smoke-test builder against this repo's README pretending it's a glossary
-        # Builder must at least parse-without-throwing; we'll use wand's glossary
-        # fetched from GitHub raw for a realistic smoke test.
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Type-check + build (turbo pipeline)
+        run: pnpm run build
+      - name: Smoke-test builder against wand's glossary
         run: |
           curl -sSL -o /tmp/wand-glossary.md \
             https://raw.githubusercontent.com/akira-toriyama/wand/main/docs/glossary.md

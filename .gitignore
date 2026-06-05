@@ -3,6 +3,8 @@ dist/
 .DS_Store
 *.log
 .vite/
+.turbo/
+coverage/
 
 # generated for each caller in CI; not committed
 packages/viewer/public/glossary.json
