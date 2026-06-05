@@ -171,6 +171,17 @@ describe("parseGlossary", () => {
     expect(out.entries[0]?.wikilinks).toEqual(["Entity", "Value Object"]);
   });
 
+  it("strips display-text from wikilinks (keeps target only)", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "See [[Entity|エンティティ]] and [[Value Object | 値オブジェクト]].",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.wikilinks).toEqual(["Entity", "Value Object"]);
+  });
+
   it("captures section overview between H2 and first H3", () => {
     const md = [
       "## Domain",

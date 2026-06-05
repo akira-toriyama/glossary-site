@@ -179,7 +179,7 @@ export function parseGlossary(content: string): ParsedGlossary {
         .filter(Boolean);
       const fullBody = bodyLines.join("\n");
       const wikilinks = [...fullBody.matchAll(/\[\[([^\]]+)\]\]/g)]
-        .map((m) => m[1])
+        .map((m) => m[1]?.split("|", 1)[0]?.trim())
         .filter((s): s is string => Boolean(s));
       const tags = extractTags(fullBody);
       const entry: Entry = {
