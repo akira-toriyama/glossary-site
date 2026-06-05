@@ -147,6 +147,43 @@ describe("parseGlossary", () => {
     expect(out.entries[0]?.body).toContain("補足: この行は body 扱い");
   });
 
+  it("extracts dontcall from Obsidian callout [!ban]", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "Cluster of entities.",
+      "> [!ban] Don't call it",
+      "> group, bundle, cluster",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.aliases).toEqual(["group", "bundle", "cluster"]);
+    expect(out.entries[0]?.body).not.toContain("[!ban]");
+    expect(out.entries[0]?.body).not.toContain("group");
+  });
+
+  it("supports multi-line callout body", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "> [!ban] Don't call it",
+      "> a, b, c,",
+      "> d, e",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.aliases).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("recognises [!dontcall] and [!noncall] aliases (case-insensitive)", () => {
+    const variants = ["dontcall", "DontCall", "NONCALL"];
+    for (const v of variants) {
+      const md = ["## D", "", "### T", `> [!${v}]`, "> x, y"].join("\n");
+      const out = parseGlossary(md);
+      expect(out.entries[0]?.aliases).toEqual(["x", "y"]);
+    }
+  });
+
   it("does not treat a new bullet as dontcall continuation", () => {
     const md = [
       "## Domain",
