@@ -6,6 +6,7 @@ export type Entry = {
   aliases: string[];
   wikilinks: string[];
   anchor: string;
+  tags: string[];
 };
 
 export type SectionOverview = {

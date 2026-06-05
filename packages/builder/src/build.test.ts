@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { findBrokenWikilinks, parseGlossary, slug } from "./build.ts";
+import { extractTags, findBrokenWikilinks, parseGlossary, slug } from "./build.ts";
 import type { GlossaryJson } from "./types.ts";
 
 function makeGlossary(
-  entries: { term: string; aliases?: string[]; wikilinks?: string[] }[],
+  entries: { term: string; aliases?: string[]; wikilinks?: string[]; tags?: string[] }[],
 ): GlossaryJson {
   return {
     repo: "test",
@@ -22,6 +22,7 @@ function makeGlossary(
       aliases: e.aliases ?? [],
       wikilinks: e.wikilinks ?? [],
       anchor: e.term,
+      tags: e.tags ?? [],
     })),
   };
 }
@@ -78,8 +79,21 @@ describe("parseGlossary", () => {
       section: "Domain",
       body: "Cluster of entities.",
       anchor: "aggregate",
+      tags: [],
     });
     expect(out.entries[1]?.term).toBe("Repository");
+  });
+
+  it("captures hashtags from entry body into entry.tags", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "Cluster of entities. #ddd #core",
+      "Used everywhere. #ddd",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.tags).toEqual(["ddd", "core"]);
   });
 
   it("extracts Don't call it line into dontcall + aliases", () => {
@@ -193,6 +207,40 @@ describe("parseGlossary", () => {
     const out = parseGlossary(md);
     expect(out.sections).toEqual(["A", "B"]);
     expect(out.sectionOverviews[0]?.name).toBe("A");
+  });
+});
+
+describe("extractTags", () => {
+  it("captures single #tag in prose", () => {
+    expect(extractTags("これは #perf に関する話")).toEqual(["perf"]);
+  });
+
+  it("captures multiple unique tags in source order", () => {
+    expect(extractTags("see #perf and #a11y; also #perf again")).toEqual(["perf", "a11y"]);
+  });
+
+  it("ignores markdown headers (# space)", () => {
+    expect(extractTags("# Title\n## Section")).toEqual([]);
+  });
+
+  it("ignores URL fragments", () => {
+    expect(extractTags("link: https://ex.com/page#section")).toEqual([]);
+  });
+
+  it("ignores hashtags inside inline code", () => {
+    expect(extractTags("config: `option #default` and #real")).toEqual(["real"]);
+  });
+
+  it("ignores hashtags inside fenced code blocks", () => {
+    expect(extractTags("```\n#code\n#in_block\n```\n#outside")).toEqual(["outside"]);
+  });
+
+  it("supports nested tag separator `/`", () => {
+    expect(extractTags("see #domain/aggregate")).toEqual(["domain/aggregate"]);
+  });
+
+  it("supports CJK in tag names", () => {
+    expect(extractTags("see #要件")).toEqual(["要件"]);
   });
 });
 
