@@ -184,7 +184,7 @@ export default function App() {
                       <Command.Item
                         key={e.term}
                         value={e.term}
-                        keywords={[...e.aliases, e.section]}
+                        keywords={[...e.aliases, e.section, ...(e.tags ?? []).map((t) => `#${t}`)]}
                       >
                         <span className="item-term">{e.term}</span>
                         {e.aliases.length > 0 && (
@@ -269,6 +269,15 @@ function EntryView({ entry, repo }: { entry: Entry; repo: string }) {
     <article className="entry">
       <div className="entry-section">{entry.section}</div>
       <h2 id={entry.anchor}>{entry.term}</h2>
+      {entry.tags && entry.tags.length > 0 && (
+        <div className="entry-tags">
+          {entry.tags.map((t) => (
+            <span key={t} className="tag-chip">
+              #{t}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="body" dangerouslySetInnerHTML={{ __html: html }} />
       {entry.dontcall && (
         <div className="dontcall">

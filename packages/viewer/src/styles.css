@@ -336,6 +336,22 @@ a {
   margin-bottom: 4px;
   font-weight: 600;
 }
+.entry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.tag-chip {
+  font:
+    11px / 1 ui-monospace,
+    monospace;
+  color: var(--dim);
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
 .entry h2 {
   font:
     700 28px / 1.25 ui-monospace,

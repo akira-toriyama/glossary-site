@@ -181,6 +181,7 @@ export function parseGlossary(content: string): ParsedGlossary {
       const wikilinks = [...fullBody.matchAll(/\[\[([^\]]+)\]\]/g)]
         .map((m) => m[1])
         .filter((s): s is string => Boolean(s));
+      const tags = extractTags(fullBody);
       const entry: Entry = {
         term,
         section,
@@ -189,6 +190,7 @@ export function parseGlossary(content: string): ParsedGlossary {
         aliases,
         wikilinks,
         anchor: slug(term),
+        tags,
       };
       out.entries.push(entry);
       continue;
@@ -222,6 +224,33 @@ export function parseGlossary(content: string): ParsedGlossary {
     i++;
   }
   flushOverview();
+  return out;
+}
+
+/**
+ * Extract Obsidian-style `#tag` tokens from entry body.
+ * - Must follow start-of-line or whitespace (so Markdown headers `# foo`,
+ *   URL fragments `…#anchor`, and inline code `…#x` after non-space don't match).
+ * - First char must be a letter (incl. CJK) or digit; subsequent chars allow
+ *   `\-`, `_`, `/` (Obsidian nested tag separator).
+ * - Inside `code spans` and fenced code blocks, tags are NOT extracted.
+ * - Returns unique, source-order preserved.
+ */
+export function extractTags(text: string): string[] {
+  // Strip fenced code blocks
+  const noFenced = text.replace(/```[\s\S]*?```/g, "");
+  // Strip inline code spans
+  const noCode = noFenced.replace(/`[^`]*`/g, "");
+  const re = /(?<=^|\s)#([\p{L}\p{N}][\p{L}\p{N}\-_/]*)/gu;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of noCode.matchAll(re)) {
+    const t = m[1];
+    if (t && !seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  }
   return out;
 }
 
