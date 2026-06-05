@@ -1,0 +1,122 @@
+import { describe, expect, it } from "vitest";
+import { parseGlossary, slug } from "./build.ts";
+
+describe("slug", () => {
+  it("lowercases ASCII", () => {
+    expect(slug("Hello World")).toBe("hello-world");
+  });
+
+  it("strips backticks", () => {
+    expect(slug("`code` term")).toBe("code-term");
+  });
+
+  it("keeps Japanese characters", () => {
+    expect(slug("ユビキタス言語")).toBe("ユビキタス言語");
+  });
+
+  it("collapses whitespace into hyphens", () => {
+    expect(slug("  multiple   spaces  ")).toBe("-multiple-spaces-");
+  });
+
+  it("drops punctuation outside the allow-list", () => {
+    expect(slug("foo, bar! baz.")).toBe("foo-bar-baz");
+  });
+});
+
+describe("parseGlossary", () => {
+  it("captures title from H1", () => {
+    const md = "# Project Glossary\n\n## Section\n";
+    const out = parseGlossary(md);
+    expect(out.title).toBe("Project Glossary");
+  });
+
+  it("captures sections from H2", () => {
+    const md = "## Domain\n\n## Tech\n";
+    const out = parseGlossary(md);
+    expect(out.sections).toEqual(["Domain", "Tech"]);
+  });
+
+  it("captures entries from H3 with body and anchor", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "Cluster of entities.",
+      "",
+      "### Repository",
+      "Persistence boundary.",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries).toHaveLength(2);
+    expect(out.entries[0]).toMatchObject({
+      term: "Aggregate",
+      section: "Domain",
+      body: "Cluster of entities.",
+      anchor: "aggregate",
+    });
+    expect(out.entries[1]?.term).toBe("Repository");
+  });
+
+  it("extracts Don't call it line into dontcall + aliases", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "Cluster of entities.",
+      "**Don't call it:** group, bundle",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.dontcall).toBe("group, bundle");
+    expect(out.entries[0]?.aliases).toEqual(["group", "bundle"]);
+    expect(out.entries[0]?.body).toBe("Cluster of entities.");
+  });
+
+  it("collects wikilinks from entry body", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "Composed of [[Entity]] and [[Value Object]].",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.wikilinks).toEqual(["Entity", "Value Object"]);
+  });
+
+  it("captures section overview between H2 and first H3", () => {
+    const md = [
+      "## Domain",
+      "",
+      "Overview text spans multiple lines.",
+      "",
+      "More overview.",
+      "",
+      "### Aggregate",
+      "body",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.sectionOverviews).toHaveLength(1);
+    expect(out.sectionOverviews[0]).toMatchObject({
+      name: "Domain",
+      anchor: "domain",
+    });
+    expect(out.sectionOverviews[0]?.body).toContain("Overview text");
+    expect(out.sectionOverviews[0]?.body).toContain("More overview");
+  });
+
+  it("captures mermaid diagrams with section label", () => {
+    const md = ["## Architecture", "", "```mermaid", "graph LR; A-->B", "```", ""].join("\n");
+    const out = parseGlossary(md);
+    expect(out.diagrams).toHaveLength(1);
+    expect(out.diagrams[0]).toMatchObject({
+      sectionLabel: "Architecture",
+      mermaid: "graph LR; A-->B",
+    });
+  });
+
+  it("treats --- as section/overview separator", () => {
+    const md = ["## A", "", "overview", "", "---", "", "## B"].join("\n");
+    const out = parseGlossary(md);
+    expect(out.sections).toEqual(["A", "B"]);
+    expect(out.sectionOverviews[0]?.name).toBe("A");
+  });
+});

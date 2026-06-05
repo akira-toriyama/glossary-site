@@ -23,6 +23,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Lint + format check (Biome)
         run: pnpm run lint
+      - name: Unit tests (Vitest via turbo)
+        run: pnpm run test
       - name: Type-check + build (turbo pipeline)
         run: pnpm run build
       - name: Smoke-test builder against wand's glossary
