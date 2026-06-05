@@ -59,7 +59,7 @@ async function main() {
   await fs.writeFile(output, JSON.stringify(result, null, 2));
   console.error(`wrote: ${output}`);
   console.error(
-    `  entries: ${result.entries.length}, diagrams: ${result.diagrams.length}, sections: ${result.sections.length}, overviews: ${result.sectionOverviews.length}`
+    `  entries: ${result.entries.length}, diagrams: ${result.diagrams.length}, sections: ${result.sections.length}, overviews: ${result.sectionOverviews.length}`,
   );
 }
 

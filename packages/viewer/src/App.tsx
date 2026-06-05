@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
-import type { Diagram, Entry, Glossary, SectionOverview } from "./types";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { renderMarkdown } from "./markdown";
+import type { Diagram, Entry, Glossary, SectionOverview } from "./types";
 
 const OVERVIEW_PREFIX = "__overview__:";
 const isOverviewValue = (v: string) => v.startsWith(OVERVIEW_PREFIX);
@@ -138,7 +138,8 @@ export default function App() {
           </span>
           {glossary.diagrams.length > 0 && (
             <span className="stat-chip">
-              {glossary.diagrams.length} {pluralize(glossary.diagrams.length, "diagram", "diagrams")}
+              {glossary.diagrams.length}{" "}
+              {pluralize(glossary.diagrams.length, "diagram", "diagrams")}
             </span>
           )}
         </div>
@@ -201,16 +202,12 @@ export default function App() {
           </Command>
         </aside>
         <main className="preview" ref={previewRef}>
-          {viewing?.kind === "entry" && (
-            <EntryView entry={viewing.entry} repo={glossary.repo} />
-          )}
+          {viewing?.kind === "entry" && <EntryView entry={viewing.entry} repo={glossary.repo} />}
           {viewing?.kind === "overview" && (
             <OverviewView
               overview={viewing.overview}
               repo={glossary.repo}
-              diagrams={glossary.diagrams.filter(
-                (d) => d.sectionLabel === viewing.overview.name
-              )}
+              diagrams={glossary.diagrams.filter((d) => d.sectionLabel === viewing.overview.name)}
             />
           )}
         </main>
@@ -245,10 +242,7 @@ function OverviewView({
   repo: string;
   diagrams: Diagram[];
 }) {
-  const html = useMemo(
-    () => renderMarkdown(overview.body, repo),
-    [overview.body, repo]
-  );
+  const html = useMemo(() => renderMarkdown(overview.body, repo), [overview.body, repo]);
   return (
     <article className="entry">
       <div className="entry-section">概要 / overview</div>
@@ -259,10 +253,7 @@ function OverviewView({
           <h3>図</h3>
           {diagrams.map((d) => (
             <figure key={d.id} className="diagram">
-              <div
-                className="diagram-svg"
-                dangerouslySetInnerHTML={{ __html: d.svg }}
-              />
+              <div className="diagram-svg" dangerouslySetInnerHTML={{ __html: d.svg }} />
             </figure>
           ))}
         </section>
@@ -273,10 +264,7 @@ function OverviewView({
 
 function EntryView({ entry, repo }: { entry: Entry; repo: string }) {
   const html = useMemo(() => renderMarkdown(entry.body, repo), [entry.body, repo]);
-  const dcHtml = useMemo(
-    () => renderMarkdown(entry.dontcall, repo),
-    [entry.dontcall, repo]
-  );
+  const dcHtml = useMemo(() => renderMarkdown(entry.dontcall, repo), [entry.dontcall, repo]);
   return (
     <article className="entry">
       <div className="entry-section">{entry.section}</div>
