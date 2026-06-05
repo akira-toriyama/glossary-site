@@ -126,13 +126,24 @@ export function parseGlossary(content: string): ParsedGlossary {
       }
       let dontcall = "";
       const bodyNoDc: string[] = [];
+      let dontcallContinuing = false;
       for (const bl of bodyLines) {
         const m = bl.match(/\*\*Don'?t call it:\*\*\s*(.+)$/);
         if (m?.[1]) {
           dontcall = m[1].trim();
-        } else {
-          bodyNoDc.push(bl);
+          dontcallContinuing = dontcall.endsWith(",") || dontcall.endsWith("、");
+          continue;
         }
+        // continuation: indented (not blank, not a new bullet) AND previous dontcall line
+        // ended with a separator comma. Stops as soon as a non-comma-trailing line lands.
+        if (dontcallContinuing && /^\s+\S/.test(bl) && !/^\s*-\s+/.test(bl)) {
+          const cont = bl.trim();
+          dontcall = `${dontcall} ${cont}`;
+          dontcallContinuing = cont.endsWith(",") || cont.endsWith("、");
+          continue;
+        }
+        dontcallContinuing = false;
+        bodyNoDc.push(bl);
       }
       const aliases = dontcall
         .split(/[,、]/)

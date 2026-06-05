@@ -71,6 +71,56 @@ describe("parseGlossary", () => {
     expect(out.entries[0]?.body).toBe("Cluster of entities.");
   });
 
+  it("joins comma-terminated continuation lines into dontcall", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "Cluster of entities.",
+      "- **Don't call it:** focused window, active window, frontmost window,",
+      "  target app, フォーカスウィンドウ, アクティブウィンドウ",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.aliases).toEqual([
+      "focused window",
+      "active window",
+      "frontmost window",
+      "target app",
+      "フォーカスウィンドウ",
+      "アクティブウィンドウ",
+    ]);
+    expect(out.entries[0]?.body).not.toContain("target app");
+    expect(out.entries[0]?.body).not.toContain("アクティブウィンドウ");
+  });
+
+  it("stops continuation once a non-comma-terminated line lands", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "Cluster of entities.",
+      "- **Don't call it:** a, b,",
+      "  c, d",
+      "  （補足: この行は body 扱い）",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.aliases).toEqual(["a", "b", "c", "d"]);
+    expect(out.entries[0]?.body).toContain("補足: この行は body 扱い");
+  });
+
+  it("does not treat a new bullet as dontcall continuation", () => {
+    const md = [
+      "## Domain",
+      "",
+      "### Aggregate",
+      "- **Don't call it:** group,",
+      "- 設定: `[domain]`",
+    ].join("\n");
+    const out = parseGlossary(md);
+    expect(out.entries[0]?.aliases).toEqual(["group"]);
+    expect(out.entries[0]?.body).toContain("設定:");
+  });
+
   it("collects wikilinks from entry body", () => {
     const md = [
       "## Domain",
