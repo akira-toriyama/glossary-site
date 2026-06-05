@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
 // Pages base path is supplied at build time by the reusable workflow,
 // e.g. VITE_BASE=/wand/ → assets resolve under akira-toriyama.github.io/wand/.

@@ -21,6 +21,8 @@ jobs:
           node-version: "20"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - name: Lint + format check (Biome)
+        run: pnpm run lint
       - name: Type-check + build (turbo pipeline)
         run: pnpm run build
       - name: Smoke-test builder against wand's glossary
