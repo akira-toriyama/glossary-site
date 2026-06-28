@@ -1,40 +1,6 @@
 version: 2
 updates:
-  # JavaScript dependencies (root + workspaces)
-  - package-ecosystem: "npm"
-    directories:
-      - "/"
-      - "/packages/builder"
-      - "/packages/viewer"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    groups:
-      npm-minor-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-      npm-major:
-        patterns: ["*"]
-        update-types: ["major"]
-    commit-message:
-      prefix: ":arrow_up: chore(deps)"
-      include: "scope"
-
-  # GitHub Actions versions in workflows
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
-    groups:
-      actions-minor-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-      actions-major:
-        patterns: ["*"]
-        update-types: ["major"]
-    commit-message:
-      prefix: ":arrow_up: chore(ci)"
-      include: "scope"
+      interval: weekly
