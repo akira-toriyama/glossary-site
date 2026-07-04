@@ -10,6 +10,11 @@ on:
     paths: ['packages/viewer/DESIGN.md']
   workflow_dispatch:
 
+# Least privilege, made explicit — closes zizmor's excessive-permissions
+# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+permissions:
+  contents: read
+
 jobs:
   design-md-lint:
     uses: akira-toriyama/.github/.github/workflows/design-md-lint.yml@v1
