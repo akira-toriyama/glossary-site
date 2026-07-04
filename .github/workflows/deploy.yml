@@ -45,7 +45,7 @@ jobs:
           path: tooling
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
         with:
           version: 10
 
@@ -62,10 +62,14 @@ jobs:
 
       - name: Build glossary.json
         working-directory: tooling
+        # 経由 env: `${{ inputs.glossary-path }}` を run: に直接展開すると caller 由来の
+        # 値で shell injection になり得る（zizmor template-injection）。
+        env:
+          GLOSSARY_PATH: ${{ inputs.glossary-path }}
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
           node packages/builder/bin/glossary-build.mjs \
-            --input "../caller/${{ inputs.glossary-path }}" \
+            --input "../caller/$GLOSSARY_PATH" \
             --output "packages/viewer/public/glossary.json" \
             --repo "$REPO_NAME"
 
