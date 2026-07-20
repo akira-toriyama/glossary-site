@@ -1,0 +1,22 @@
+name: design.md lint
+
+# Thin caller for the shared DESIGN.md validator. Lints packages/viewer/DESIGN.md
+# (the shared identity for the glossary family) via the reusable in akira-toriyama/.github.
+# Triggers only when that DESIGN.md changes; fails on `error` findings (broken token
+# refs) and tolerates warnings (WCAG contrast, orphaned tokens, …). See the reusable's
+# header for the full policy.
+on:
+  pull_request:
+    paths: ['packages/viewer/DESIGN.md']
+  workflow_dispatch:
+
+# Least privilege, made explicit — closes zizmor's excessive-permissions
+# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+permissions:
+  contents: read
+
+jobs:
+  design-md-lint:
+    uses: akira-toriyama/.github/.github/workflows/design-md-lint.yml@v1.2.0
+    with:
+      paths: packages/viewer/DESIGN.md

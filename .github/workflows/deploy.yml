@@ -33,24 +33,30 @@ jobs:
       contents: read
     steps:
       - name: Checkout caller repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: caller
+          # This job only reads the caller's glossary.md and builds; the Pages
+          # publish is the separate deploy job via OIDC — drop the token. t-yaxa
+          persist-credentials: false
 
       - name: Checkout glossary-site tooling
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: akira-toriyama/glossary-site
           ref: ${{ inputs.builder-ref }}
           path: tooling
+          # Tooling is fetched read-only from a public repo and only ever built
+          # locally, never pushed — drop the persisted checkout token. t-yaxa
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
         with:
           version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: "20"
           cache: "pnpm"
@@ -62,10 +68,14 @@ jobs:
 
       - name: Build glossary.json
         working-directory: tooling
+        # 経由 env: `${{ inputs.glossary-path }}` を run: に直接展開すると caller 由来の
+        # 値で shell injection になり得る（zizmor template-injection）。
+        env:
+          GLOSSARY_PATH: ${{ inputs.glossary-path }}
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
           node packages/builder/bin/glossary-build.mjs \
-            --input "../caller/${{ inputs.glossary-path }}" \
+            --input "../caller/$GLOSSARY_PATH" \
             --output "packages/viewer/public/glossary.json" \
             --repo "$REPO_NAME"
 

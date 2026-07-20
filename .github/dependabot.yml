@@ -1,40 +1,25 @@
+# Canonical standard file managed by fleet-sync (.github/workflows/fleet-sync.yml).
+# Do NOT edit per-repo copies — edit THIS file; fleet-sync propagates it to every
+# owned, non-fork, non-archived repo WITHOUT a root go.mod (repos with one get
+# fleet/dependabot-go.yml — the same file plus the gomod ecosystem). gomod is NOT
+# configured here because on a repo without a go.mod it is not a no-op: Dependabot
+# records a FAILING run ("No go.mod files found") every week (t-s3fp).
+# Synced to: .github/dependabot.yml
 version: 2
 updates:
-  # JavaScript dependencies (root + workspaces)
-  - package-ecosystem: "npm"
-    directories:
-      - "/"
-      - "/packages/builder"
-      - "/packages/viewer"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
+      interval: weekly
+    # Wait 7 days after a release before proposing it — freshly published
+    # versions are where supply-chain compromises surface (xz, tj-actions).
+    cooldown:
+      default-days: 7
+    # Batch every action bump into ONE weekly PR (not one PR per action).
     groups:
-      npm-minor-patch:
+      actions:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
-      npm-major:
-        patterns: ["*"]
-        update-types: ["major"]
+    # gitmoji + Conventional Commits so bot PRs match the house convention
+    # (CONTRIBUTING.md). Bots are exempt from commit-lint, so this is decoration.
     commit-message:
-      prefix: ":arrow_up: chore(deps)"
-      include: "scope"
-
-  # GitHub Actions versions in workflows
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 3
-    groups:
-      actions-minor-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-      actions-major:
-        patterns: ["*"]
-        update-types: ["major"]
-    commit-message:
-      prefix: ":arrow_up: chore(ci)"
-      include: "scope"
+      prefix: ":arrow_up: build(deps)"

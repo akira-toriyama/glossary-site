@@ -14,9 +14,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+        with:
+          # Lint/test/build only — the smoke-test curls a public raw URL and
+          # nothing pushes; drop the persisted checkout token. t-yaxa
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@v6.4.0
         with:
           node-version: "20"
           cache: "pnpm"
