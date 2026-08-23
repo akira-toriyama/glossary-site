@@ -21,10 +21,10 @@
   },
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
-    "@biomejs/biome": "^2.5.7",
+    "@biomejs/biome": "^2.5.8",
     "@vitest/coverage-v8": "^4.1.10",
-    "tsx": "^4.23.11",
-    "turbo": "^2.10.9",
+    "tsx": "^4.23.12",
+    "turbo": "^2.10.10",
     "vitest": "^4.1.10"
   },
   "pnpm": {
