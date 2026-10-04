@@ -16,16 +16,16 @@
     "format:fix": "biome format --write ."
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=24",
     "pnpm": ">=10"
   },
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
-    "@biomejs/biome": "^2.5.8",
-    "@vitest/coverage-v8": "^4.1.10",
-    "tsx": "^4.23.12",
-    "turbo": "^2.10.10",
-    "vitest": "^4.1.11"
+    "@biomejs/biome": "^2.5.14",
+    "@vitest/coverage-v8": "^5.0.1",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.2",
+    "vitest": "^5.0.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
