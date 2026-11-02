@@ -30,7 +30,10 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "puppeteer"
-    ]
+    ],
+    "overrides": {
+      "@mermaid-js/mermaid-cli>katex": "^0.18.2"
+    }
   },
   "license": "MIT"
 }
