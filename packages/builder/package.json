@@ -15,7 +15,7 @@
   "dependencies": {
     "@mermaid-js/mermaid-cli": "^12.2.0",
     "gray-matter": "^4.0.3",
-    "puppeteer": "^25.16.0"
+    "puppeteer": "^25.17.0"
   },
   "engines": {
     "node": ">=24"
